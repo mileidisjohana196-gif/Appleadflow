@@ -1,4 +1,3 @@
-cat > src/app/leads-dashboard/components/KPIGrid.tsx << 'ENDOFFILE''use client';
 
 import React, { useEffect, useState } from 'react';
 import { TrendingUp, TrendingDown, Mail, MessageCircle, Download, Zap, AlertTriangle, Loader2 } from 'lucide-react';
