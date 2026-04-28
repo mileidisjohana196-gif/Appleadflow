@@ -45,14 +45,14 @@ export async function POST(request: NextRequest) {
     ]);
 
     const csv = [headers, ...rows]
-      .map((row) => row.map((cell) => \`"\${String(cell).replace(/"/g, '""')}"\`).join(','))
+      .map((row) => row.map((cell) => '"' + String(cell).replace(/"/g, '""') + '"').join(','))
       .join('\n');
 
     return new NextResponse(csv, {
       status: 200,
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': \`attachment; filename="leadflow-export-\${Date.now()}.csv"\`,
+        'Content-Disposition': 'attachment; filename="leadflow-export-' + Date.now() + '.csv"',
       },
     });
   } catch (error) {
