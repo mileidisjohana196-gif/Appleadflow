@@ -1,9 +1,11 @@
 'use client';
+import dynamic from 'next/dynamic';
 import AppLayout from '@/components/AppLayout';
 import KPIGrid from './components/KPIGrid';
 import LeadsTable from './components/LeadsTable';
-import LeadsChart from './components/LeadsChart';
-import IndustryChart from './components/IndustryChart';
+
+const LeadsChart = dynamic(() => import('./components/LeadsChart'), { ssr: false });
+const IndustryChart = dynamic(() => import('./components/IndustryChart'), { ssr: false });
 
 export default function LeadsDashboardPage() {
   return (
