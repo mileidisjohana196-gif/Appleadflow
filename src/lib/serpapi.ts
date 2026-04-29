@@ -1,8 +1,3 @@
-// ============================================================
-// LeadFlow — Servicio de extracción con SerpApi
-// Ubica en: src/lib/extraction/serpapi.ts
-// ============================================================
-
 export interface ExtractedBusiness {
   name: string;
   industry: string;
@@ -25,7 +20,15 @@ interface SerpApiResult {
   types?: string[];
 }
 
-// Extrae negocios de Google Maps vía SerpApi
+function cleanBusinessName(raw: string): string {
+  return raw
+    .split(/\s*[-–|·•]\s*/)[0]
+    .replace(/\(.*?\)/g, '')
+    .replace(/,.*$/, '')
+    .trim()
+    .slice(0, 60);
+}
+
 export async function extractBusinesses(
   industry: string,
   city: string,
@@ -36,7 +39,7 @@ export async function extractBusinesses(
 
   const results: ExtractedBusiness[] = [];
   let start = 0;
-  const batchSize = 20; // SerpApi devuelve 20 resultados por página
+  const batchSize = 20;
 
   while (results.length < maxResults) {
     const params = new URLSearchParams({
@@ -48,20 +51,19 @@ export async function extractBusinesses(
     });
 
     const res = await fetch(`https://serpapi.com/search?${params}`);
-    if (!res.ok) {
-      throw new Error(`SerpApi error: ${res.status} ${res.statusText}`);
-    }
+    if (!res.ok) throw new Error(`SerpApi error: ${res.status} ${res.statusText}`);
 
     const data = await res.json();
     const places: SerpApiResult[] = data.local_results ?? [];
 
-    if (places.length === 0) break; // No hay más resultados
+    if (places.length === 0) break;
 
     for (const place of places) {
       if (results.length >= maxResults) break;
 
+      const rawName = place.title ?? 'Sin nombre';
       const business: ExtractedBusiness = {
-        name: place.title ?? 'Sin nombre',
+        name: cleanBusinessName(rawName),
         industry: place.type ?? place.types?.[0] ?? industry,
         city,
         phone: place.phone ?? null,
@@ -70,11 +72,10 @@ export async function extractBusinesses(
         maps_url: place.place_id
           ? `https://www.google.com/maps/place/?q=place_id:${place.place_id}`
           : null,
-        email: null,       // Se enriquece en la siguiente fase
-        whatsapp: false,   // Se detecta según el teléfono
+        email: null,
+        whatsapp: false,
       };
 
-      // Detectar WhatsApp: teléfonos de países con alta adopción
       if (business.phone) {
         business.whatsapp = isLikelyWhatsApp(business.phone);
       }
@@ -83,8 +84,6 @@ export async function extractBusinesses(
     }
 
     start += batchSize;
-
-    // Pequeña pausa para respetar rate limits de SerpApi
     if (results.length < maxResults && places.length === batchSize) {
       await sleep(500);
     } else {
@@ -95,10 +94,8 @@ export async function extractBusinesses(
   return results;
 }
 
-// Heurística simple: la mayoría de teléfonos latinoamericanos usan WhatsApp
 function isLikelyWhatsApp(phone: string): boolean {
   const cleaned = phone.replace(/\D/g, '');
-  // Prefijos comunes LATAM: Colombia (+57), México (+52), Argentina (+54), etc.
   const latamPrefixes = ['57', '52', '54', '55', '56', '51', '58', '593', '595', '598'];
   return latamPrefixes.some((p) => cleaned.startsWith(p)) || cleaned.length >= 10;
 }
