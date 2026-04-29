@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { ids, format = 'csv' } = body;
+    const { ids, job_id, format = 'csv' } = body;
 
     let query = supabase
       .from('leads')
@@ -19,7 +19,9 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .order('extracted_at', { ascending: false });
 
-    if (ids && Array.isArray(ids) && ids.length > 0) {
+    if (job_id) {
+      query = query.eq('job_id', job_id);
+    } else if (ids && Array.isArray(ids) && ids.length > 0) {
       query = query.in('id', ids);
     }
 
@@ -38,49 +40,50 @@ export async function POST(request: NextRequest) {
           <td>${l.industry ?? '—'}</td>
           <td>${l.city ?? '—'}</td>
           <td>${l.phone ?? '—'}</td>
-          <td>${l.whatsapp ? '✓' : '—'}</td>
+          <td>${l.whatsapp ? '<span class="badge">✓ WA</span>' : '—'}</td>
           <td>${l.email ?? '—'}</td>
-          <td>${l.website ? '<a href="' + l.website + '">' + l.website.replace(/https?:\/\/(www\.)?/, '').slice(0, 30) + '</a>' : '—'}</td>
+          <td>${l.website ? '<a href="' + l.website + '" target="_blank">' + l.website.replace(/https?:\/\/(www\.)?/, '').slice(0, 30) + '</a>' : '—'}</td>
+          <td>${l.address ? l.address.slice(0, 40) : '—'}</td>
         </tr>`).join('');
 
       const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8"/>
-  <title>LeadFlow — Exportación de Leads</title>
+  <title>LeadFlow — Reporte de Leads</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1a2e; background: #fff; padding: 40px; }
     .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #16a34a; padding-bottom: 20px; margin-bottom: 30px; }
     .brand { font-size: 26px; font-weight: 800; color: #16a34a; letter-spacing: -0.5px; }
-    .meta { text-align: right; font-size: 12px; color: #666; }
-    .meta p { margin-bottom: 2px; }
-    .summary { display: flex; gap: 20px; margin-bottom: 30px; }
-    .stat { flex: 1; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 16px; text-align: center; }
+    .brand span { color: #1a1a2e; }
+    .meta { text-align: right; font-size: 12px; color: #666; line-height: 1.8; }
+    .summary { display: flex; gap: 16px; margin-bottom: 30px; }
+    .stat { flex: 1; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; text-align: center; }
     .stat .num { font-size: 28px; font-weight: 800; color: #16a34a; }
-    .stat .label { font-size: 11px; color: #666; margin-top: 4px; }
+    .stat .label { font-size: 11px; color: #666; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
     table { width: 100%; border-collapse: collapse; font-size: 11px; }
     thead tr { background: #16a34a; color: white; }
-    thead th { padding: 10px 8px; text-align: left; font-weight: 600; letter-spacing: 0.3px; }
+    thead th { padding: 10px 8px; text-align: left; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; font-size: 10px; }
     tbody tr.even { background: #f9fafb; }
     tbody tr.odd { background: #ffffff; }
     tbody td { padding: 8px; border-bottom: 1px solid #e5e7eb; vertical-align: middle; }
-    tbody tr:hover { background: #f0fdf4; }
-    a { color: #16a34a; text-decoration: none; font-size: 10px; }
-    .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 10px; color: #9ca3af; }
-    .badge { display: inline-block; background: #dcfce7; color: #16a34a; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+    a { color: #16a34a; text-decoration: none; }
+    .badge { display: inline-block; background: #dcfce7; color: #16a34a; padding: 1px 7px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+    .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; font-size: 10px; color: #9ca3af; }
+    @media print { body { padding: 20px; } .stat { break-inside: avoid; } }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
-      <div class="brand">🌱 LeadFlow</div>
-      <p style="font-size:12px;color:#666;margin-top:4px">Plataforma de extracción de leads</p>
+      <div class="brand">🌱 Lead<span>Flow</span></div>
+      <p style="font-size:12px;color:#666;margin-top:6px">Plataforma de extracción de leads B2B</p>
     </div>
     <div class="meta">
-      <p><strong>Reporte de Leads</strong></p>
+      <p><strong>Reporte de Leads Extraídos</strong></p>
       <p>Generado: ${date}</p>
-      <p>Total: ${leads.length} leads</p>
+      <p>Total registros: <strong>${leads.length}</strong></p>
     </div>
   </div>
 
@@ -118,13 +121,15 @@ export async function POST(request: NextRequest) {
         <th>WA</th>
         <th>Email</th>
         <th>Sitio Web</th>
+        <th>Dirección</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
   </table>
 
   <div class="footer">
-    Generado por LeadFlow · appleadflow.vercel.app · ${date}
+    <span>LeadFlow · appleadflow.vercel.app</span>
+    <span>Generado el ${date} · Datos obtenidos de Google Maps via SerpApi</span>
   </div>
 </body>
 </html>`;
@@ -133,23 +138,16 @@ export async function POST(request: NextRequest) {
         status: 200,
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="leadflow-leads-' + Date.now() + '.html"',
+          'Content-Disposition': 'attachment; filename="leadflow-reporte-' + Date.now() + '.html"',
         },
       });
     }
 
-    // CSV mejorado
+    // CSV con BOM para Excel
     const headers = ['#', 'Nombre', 'Industria', 'Ciudad', 'Teléfono', 'WhatsApp', 'Email', 'Sitio Web', 'Dirección', 'Fecha'];
     const csvRows = leads.map((l, i) => [
-      i + 1,
-      l.name,
-      l.industry ?? '',
-      l.city ?? '',
-      l.phone ?? '',
-      l.whatsapp ? 'Sí' : 'No',
-      l.email ?? '',
-      l.website ?? '',
-      l.address ?? '',
+      i + 1, l.name, l.industry ?? '', l.city ?? '', l.phone ?? '',
+      l.whatsapp ? 'Sí' : 'No', l.email ?? '', l.website ?? '', l.address ?? '',
       new Date(l.extracted_at).toLocaleDateString('es-CO'),
     ]);
 

@@ -91,17 +91,17 @@ export default function ActiveJobs({ newJob }: ActiveJobsProps) {
       const res = await fetch('/api/leads/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ job_id: job.id, ids: [] }),
+        body: JSON.stringify({ job_id: job.id, ids: [], format: 'pdf' }),
       });
       if (!res.ok) throw new Error('Error al exportar');
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `leadflow-${job.industry}-${job.city}.csv`;
+      a.download = `leadflow-${job.industry}-${job.city}.html`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`${job.found_count} leads exportados a CSV`);
+      toast.success(`${job.found_count} reporte descargado — ábrelo en el navegador e imprime como PDF`);
     } catch {
       toast.error('Error al exportar leads');
     }
