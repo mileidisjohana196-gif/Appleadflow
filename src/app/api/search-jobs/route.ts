@@ -16,29 +16,54 @@ export async function POST(request: NextRequest) {
 
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('quota_used, quota_total')
+      .select('quota_used, quota_total, plan')
       .eq('id', user.id)
       .single();
 
-    if (!profile || profile.quota_used >= profile.quota_total) {
-      return NextResponse.json({ error: 'Cuota de extracción agotada' }, { status: 429 });
+    const quotaUsed = profile?.quota_used ?? 0;
+    const quotaTotal = profile?.quota_total ?? 100;
+    const quotaLeft = quotaTotal - quotaUsed;
+
+    if (quotaLeft <= 0) {
+      return NextResponse.json({
+        error: 'Cuota agotada',
+        message: 'Has alcanzado el límite de tu plan. Mejora tu plan para continuar extrayendo leads.',
+        upgrade_url: '/pricing',
+      }, { status: 429 });
     }
 
     const body = await request.json();
     const {
       industry, city,
-      radius_km = 10, max_results = 50,
-      extract_email = true, extract_whatsapp = true,
-      extract_website = true, extract_address = true,
+      radius_km = 10,
+      max_results = 50,
+      extract_email = true,
+      extract_whatsapp = true,
+      extract_website = true,
+      extract_address = true,
     } = body;
 
     if (!industry || !city) {
       return NextResponse.json({ error: 'industry y city son requeridos' }, { status: 400 });
     }
 
+    // Limitar max_results a la cuota disponible
+    const effectiveMax = Math.min(max_results, quotaLeft);
+
     const { data: job, error: jobError } = await supabase
       .from('extraction_jobs')
-      .insert({ user_id: user.id, industry, city, radius_km, max_results, extract_email, extract_whatsapp, extract_website, extract_address, status: 'queued' })
+      .insert({
+        user_id: user.id,
+        industry,
+        city,
+        radius_km,
+        max_results: effectiveMax,
+        extract_email,
+        extract_whatsapp,
+        extract_website,
+        extract_address,
+        status: 'queued',
+      })
       .select()
       .single();
 
@@ -56,7 +81,7 @@ export async function POST(request: NextRequest) {
           .update({ status: 'running', started_at: new Date().toISOString(), progress: 5 })
           .eq('id', jobId);
 
-        const businesses = await extractBusinesses(industry, city, max_results);
+        const businesses = await extractBusinesses(industry, city, effectiveMax);
 
         await supabase
           .from('extraction_jobs')
@@ -97,7 +122,12 @@ export async function POST(request: NextRequest) {
 
         await supabase
           .from('extraction_jobs')
-          .update({ status: 'completed', progress: 100, found_count: inserted, finished_at: new Date().toISOString() })
+          .update({
+            status: 'completed',
+            progress: 100,
+            found_count: inserted,
+            finished_at: new Date().toISOString(),
+          })
           .eq('id', jobId);
 
       } catch (err) {
@@ -109,7 +139,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return NextResponse.json({ job }, { status: 201 });
+    return NextResponse.json({ job, quota_left: quotaLeft - effectiveMax }, { status: 201 });
   } catch (error) {
     console.error('[POST /api/search-jobs]', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });
