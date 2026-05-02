@@ -24,6 +24,7 @@ export default function LeadsTable() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [copyModal, setCopyModal] = useState<Lead | null>(null);
   const perPage = 10;
 
   const fetchLeads = useCallback(async () => {
@@ -47,6 +48,12 @@ export default function LeadsTable() {
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
   useEffect(() => { setPage(1); }, [search]);
+
+  const copy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(label + ' copiado');
+    setCopyModal(null);
+  };
 
   const handleExport = async (format: 'csv' | 'pdf') => {
     try {
@@ -103,6 +110,57 @@ export default function LeadsTable() {
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+
+      {/* Copy modal */}
+      {copyModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-end justify-center p-4" onClick={() => setCopyModal(null)}>
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm shadow-xl mb-4" onClick={(e) => e.stopPropagation()}>
+            <div className="px-5 py-4 border-b border-border">
+              <p className="text-[14px] font-700 text-foreground truncate">{copyModal.name}</p>
+              <p className="text-[12px] text-muted-foreground">{copyModal.industry} · {copyModal.city}</p>
+            </div>
+            <div className="p-3 space-y-1">
+              {copyModal.phone && (
+                <button onClick={() => copy(copyModal.phone!, 'Teléfono')}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors text-left">
+                  <Copy size={15} className="text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Teléfono</p>
+                    <p className="text-[13px] font-600 text-foreground">{copyModal.phone}</p>
+                  </div>
+                </button>
+              )}
+              {copyModal.email && (
+                <button onClick={() => copy(copyModal.email!, 'Email')}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors text-left">
+                  <Copy size={15} className="text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Email</p>
+                    <p className="text-[13px] font-600 text-foreground">{copyModal.email}</p>
+                  </div>
+                </button>
+              )}
+              {copyModal.website && (
+                <button onClick={() => copy(copyModal.website!, 'Sitio web')}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors text-left">
+                  <Copy size={15} className="text-muted-foreground shrink-0" />
+                  <div>
+                    <p className="text-[11px] text-muted-foreground">Sitio web</p>
+                    <p className="text-[13px] font-600 text-foreground truncate">{copyModal.website}</p>
+                  </div>
+                </button>
+              )}
+            </div>
+            <div className="px-3 pb-3">
+              <button onClick={() => setCopyModal(null)}
+                className="w-full py-2.5 text-[13px] font-600 text-muted-foreground border border-border rounded-xl hover:bg-muted transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-5 py-4 border-b border-border flex flex-col sm:flex-row sm:items-center gap-3 justify-between bg-card">
         <div>
@@ -122,16 +180,12 @@ export default function LeadsTable() {
               className="pl-8 pr-3 h-8 text-[13px] bg-background border border-border rounded-lg outline-none focus:border-primary w-44 transition-colors"
             />
           </div>
-          <button
-            onClick={() => handleExport('csv')}
-            className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium border border-border rounded-lg hover:bg-muted transition-colors"
-          >
+          <button onClick={() => handleExport('csv')}
+            className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium border border-border rounded-lg hover:bg-muted transition-colors">
             <Download size={13} />CSV
           </button>
-          <button
-            onClick={() => handleExport('pdf')}
-            className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium bg-primary text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
+          <button onClick={() => handleExport('pdf')}
+            className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium bg-primary text-white rounded-lg hover:bg-green-700 transition-colors">
             <FileText size={13} />Reporte
           </button>
         </div>
@@ -156,12 +210,10 @@ export default function LeadsTable() {
             <thead>
               <tr className="border-b border-border bg-muted/30">
                 <th className="px-4 py-3 text-left w-8">
-                  <input
-                    type="checkbox"
+                  <input type="checkbox"
                     checked={selected.size === leads.length && leads.length > 0}
                     onChange={() => selected.size === leads.length ? setSelected(new Set()) : setSelected(new Set(leads.map(l => l.id)))}
-                    className="rounded accent-primary cursor-pointer"
-                  />
+                    className="rounded accent-primary cursor-pointer" />
                 </th>
                 <th className="px-4 py-3 w-8"></th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground tracking-wide uppercase text-[10.5px]">Negocio</th>
@@ -170,29 +222,19 @@ export default function LeadsTable() {
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground tracking-wide uppercase text-[10.5px]">Teléfono</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground tracking-wide uppercase text-[10.5px]">WA</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground tracking-wide uppercase text-[10.5px]">Web</th>
-                <th className="px-4 py-3 w-8"></th>
+                <th className="px-4 py-3 w-20"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {leads.map((lead) => (
                 <tr key={lead.id} className="hover:bg-muted/20 transition-colors group">
                   <td className="px-4 py-3">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(lead.id)}
-                      onChange={() => toggleRow(lead.id)}
-                      className="rounded accent-primary cursor-pointer"
-                    />
+                    <input type="checkbox" checked={selected.has(lead.id)} onChange={() => toggleRow(lead.id)}
+                      className="rounded accent-primary cursor-pointer" />
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => handleToggleFavorite(lead)}
-                      className="p-1 rounded-lg transition-colors"
-                    >
-                      <Star
-                        size={14}
-                        className={lead.favorite ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/40 hover:text-amber-400'}
-                      />
+                    <button onClick={() => handleToggleFavorite(lead)} className="p-1 rounded-lg transition-colors">
+                      <Star size={14} className={lead.favorite ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/40 hover:text-amber-400'} />
                     </button>
                   </td>
                   <td className="px-4 py-3">
@@ -205,43 +247,30 @@ export default function LeadsTable() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{lead.city ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <span className="text-muted-foreground font-mono text-[11.5px]">{lead.phone ?? '—'}</span>
-                      {lead.phone && (
-                        <button onClick={() => { navigator.clipboard.writeText(lead.phone!); toast.success('Teléfono copiado'); }}
-                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
-                          <Copy size={11} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                  <td className="px-4 py-3 text-muted-foreground font-mono text-[11.5px]">{lead.phone ?? '—'}</td>
                   <td className="px-4 py-3">
                     {lead.whatsapp
                       ? <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />Sí</span>
-                      : <span className="text-muted-foreground text-[11px]">—</span>
-                    }
+                      : <span className="text-muted-foreground text-[11px]">—</span>}
                   </td>
                   <td className="px-4 py-3">
-                    {lead.website ? (
-                      <div className="flex items-center gap-1">
-                        <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[11px] truncate max-w-[80px] block">
-                          {lead.website.replace(/https?:\/\/(www\.)?/, '').slice(0, 18)}...
+                    {lead.website
+                      ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[11px] truncate max-w-[100px] block">
+                          {lead.website.replace(/https?:\/\/(www\.)?/, '').slice(0, 22)}...
                         </a>
-                        <button onClick={() => { navigator.clipboard.writeText(lead.website!); toast.success('URL copiada'); }}
-                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground shrink-0">
-                          <Copy size={11} />
-                        </button>
-                      </div>
-                    ) : <span className="text-muted-foreground text-[11px]">—</span>}
+                      : <span className="text-muted-foreground text-[11px]">—</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => handleDelete(lead.id)}
-                      className="p-1.5 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 text-muted-foreground transition-all"
-                    >
-                      <Trash2 size={13} />
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setCopyModal(lead)}
+                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
+                        <Copy size={13} />
+                      </button>
+                      <button onClick={() => handleDelete(lead.id)}
+                        className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-muted-foreground transition-colors">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
