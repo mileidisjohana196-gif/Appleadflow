@@ -11,12 +11,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const page     = parseInt(searchParams.get('page')  ?? '1');
-    const limit    = parseInt(searchParams.get('limit') ?? '50');
-    const industry = searchParams.get('industry');
-    const city     = searchParams.get('city');
-    const search   = searchParams.get('search');
-    const job_id   = searchParams.get('job_id');
+    const page      = parseInt(searchParams.get('page')  ?? '1');
+    const limit     = parseInt(searchParams.get('limit') ?? '50');
+    const industry  = searchParams.get('industry');
+    const city      = searchParams.get('city');
+    const search    = searchParams.get('search');
+    const job_id    = searchParams.get('job_id');
+    const favorite  = searchParams.get('favorite');
 
     const offset = (page - 1) * limit;
 
@@ -30,8 +31,11 @@ export async function GET(request: NextRequest) {
     if (industry) query = query.eq('industry', industry);
     if (city)     query = query.eq('city', city);
     if (job_id)   query = query.eq('job_id', job_id);
+    if (favorite === 'true') query = query.eq('favorite', true);
     if (search) {
-      query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
+      query = query.or(
+        'name.ilike.%' + search + '%,email.ilike.%' + search + '%,phone.ilike.%' + search + '%'
+      );
     }
 
     const { data: leads, count, error } = await query;
