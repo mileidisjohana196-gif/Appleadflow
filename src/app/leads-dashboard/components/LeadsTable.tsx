@@ -210,7 +210,7 @@ export default function LeadsTable() {
                       <span className="text-muted-foreground font-mono text-[11.5px]">{lead.phone ?? '—'}</span>
                       {lead.phone && (
                         <button onClick={() => { navigator.clipboard.writeText(lead.phone!); toast.success('Teléfono copiado'); }}
-                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground/50 hover:text-muted-foreground">
+                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground">
                           <Copy size={11} />
                         </button>
                       )}
@@ -229,7 +229,7 @@ export default function LeadsTable() {
                           {lead.website.replace(/https?:\/\/(www\.)?/, '').slice(0, 18)}...
                         </a>
                         <button onClick={() => { navigator.clipboard.writeText(lead.website!); toast.success('URL copiada'); }}
-                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground/50 hover:text-muted-foreground shrink-0">
+                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground shrink-0">
                           <Copy size={11} />
                         </button>
                       </div>
