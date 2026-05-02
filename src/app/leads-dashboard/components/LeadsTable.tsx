@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Search, Download, Trash2, ChevronLeft, ChevronRight, Loader2, FileText } from 'lucide-react';
+import { Search, Download, Trash2, ChevronLeft, ChevronRight, Loader2, FileText, Star } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -12,6 +12,7 @@ interface Lead {
   whatsapp: boolean;
   email: string | null;
   website: string | null;
+  favorite: boolean;
   extracted_at: string;
 }
 
@@ -55,7 +56,7 @@ export default function LeadsTable() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids, format }),
       });
-      if (!res.ok) throw new Error('Error al exportar');
+      if (!res.ok) throw new Error();
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -63,10 +64,9 @@ export default function LeadsTable() {
       a.download = format === 'pdf' ? 'leadflow-leads.html' : 'leadflow-leads.csv';
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(format === 'pdf' ? 'Reporte HTML descargado — ábrelo en el navegador e imprime como PDF' : 'CSV exportado correctamente');
-    } catch (err) {
+      toast.success(format === 'pdf' ? 'Reporte descargado' : 'CSV exportado');
+    } catch {
       toast.error('Error al exportar');
-      console.error(err);
     }
   };
 
@@ -79,6 +79,17 @@ export default function LeadsTable() {
       toast.success('Lead eliminado');
     } catch {
       toast.error('Error al eliminar lead');
+    }
+  };
+
+  const handleToggleFavorite = async (lead: Lead) => {
+    const method = lead.favorite ? 'DELETE' : 'POST';
+    try {
+      await fetch('/api/leads/' + lead.id + '/favorite', { method });
+      setLeads((prev) => prev.map((l) => l.id === lead.id ? { ...l, favorite: !l.favorite } : l));
+      toast.success(lead.favorite ? 'Eliminado de favoritos' : 'Agregado a favoritos');
+    } catch {
+      toast.error('Error al actualizar favorito');
     }
   };
 
@@ -115,15 +126,13 @@ export default function LeadsTable() {
             onClick={() => handleExport('csv')}
             className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium border border-border rounded-lg hover:bg-muted transition-colors"
           >
-            <Download size={13} />
-            CSV
+            <Download size={13} />CSV
           </button>
           <button
             onClick={() => handleExport('pdf')}
             className="flex items-center gap-1.5 h-8 px-3 text-[13px] font-medium bg-primary text-white rounded-lg hover:bg-green-700 transition-colors"
           >
-            <FileText size={13} />
-            Reporte
+            <FileText size={13} />Reporte
           </button>
         </div>
       </div>
@@ -154,6 +163,7 @@ export default function LeadsTable() {
                     className="rounded accent-primary cursor-pointer"
                   />
                 </th>
+                <th className="px-4 py-3 w-8"></th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground tracking-wide uppercase text-[10.5px]">Negocio</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground tracking-wide uppercase text-[10.5px]">Industria</th>
                 <th className="px-4 py-3 text-left font-semibold text-muted-foreground tracking-wide uppercase text-[10.5px]">Ciudad</th>
@@ -173,6 +183,17 @@ export default function LeadsTable() {
                       onChange={() => toggleRow(lead.id)}
                       className="rounded accent-primary cursor-pointer"
                     />
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      onClick={() => handleToggleFavorite(lead)}
+                      className="p-1 rounded-lg transition-colors"
+                    >
+                      <Star
+                        size={14}
+                        className={lead.favorite ? 'text-amber-400 fill-amber-400' : 'text-muted-foreground/40 hover:text-amber-400'}
+                      />
+                    </button>
                   </td>
                   <td className="px-4 py-3">
                     <p className="font-medium text-foreground truncate max-w-[180px]">{lead.name}</p>
