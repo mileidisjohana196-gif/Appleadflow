@@ -40,6 +40,7 @@ import {
                                                     const [apiCopied, setApiCopied] = useState(false);
                                                       const [favorites, setFavorites] = useState<any[]>([]);
                                                         const [loadingFavs, setLoadingFavs] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
                                                           const { user, getUserProfile } = useAuth();
 
                                                             useEffect(() => {
