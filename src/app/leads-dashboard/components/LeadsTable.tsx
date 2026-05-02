@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Search, Download, Trash2, ChevronLeft, ChevronRight, Loader2, FileText, Star } from 'lucide-react';
+import { Search, Download, Trash2, ChevronLeft, ChevronRight, Loader2, FileText, Star, Copy } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -205,7 +205,17 @@ export default function LeadsTable() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{lead.city ?? '—'}</td>
-                  <td className="px-4 py-3 text-muted-foreground font-mono text-[11.5px]">{lead.phone ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      <span className="text-muted-foreground font-mono text-[11.5px]">{lead.phone ?? '—'}</span>
+                      {lead.phone && (
+                        <button onClick={() => { navigator.clipboard.writeText(lead.phone!); toast.success('Teléfono copiado'); }}
+                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground/50 hover:text-muted-foreground">
+                          <Copy size={11} />
+                        </button>
+                      )}
+                    </div>
+                  </td>
                   <td className="px-4 py-3">
                     {lead.whatsapp
                       ? <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />Sí</span>
@@ -213,12 +223,17 @@ export default function LeadsTable() {
                     }
                   </td>
                   <td className="px-4 py-3">
-                    {lead.website
-                      ? <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[11px] truncate max-w-[100px] block">
-                          {lead.website.replace(/https?:\/\/(www\.)?/, '').slice(0, 22)}...
+                    {lead.website ? (
+                      <div className="flex items-center gap-1">
+                        <a href={lead.website} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-[11px] truncate max-w-[80px] block">
+                          {lead.website.replace(/https?:\/\/(www\.)?/, '').slice(0, 18)}...
                         </a>
-                      : <span className="text-muted-foreground text-[11px]">—</span>
-                    }
+                        <button onClick={() => { navigator.clipboard.writeText(lead.website!); toast.success('URL copiada'); }}
+                          className="p-1 rounded hover:bg-muted transition-colors text-muted-foreground/50 hover:text-muted-foreground shrink-0">
+                          <Copy size={11} />
+                        </button>
+                      </div>
+                    ) : <span className="text-muted-foreground text-[11px]">—</span>}
                   </td>
                   <td className="px-4 py-3">
                     <button
