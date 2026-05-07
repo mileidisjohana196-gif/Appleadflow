@@ -17,15 +17,5 @@ const nextConfig = {
     remotePatterns: imageHosts,
     minimumCacheTTL: 60,
   },
-
-  async redirects() {
-    return [
-      {
-        source: '/',
-        destination: '/sign-up-login',
-        permanent: false,
-      },
-    ];
-  }
 };
 export default nextConfig;
