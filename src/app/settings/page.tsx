@@ -1,24 +1,26 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/components/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { createClient } from '@/lib/supabase/client';
 import {
-  User, CreditCard, Key, Star, BookOpen, Bell,
-  HelpCircle, Trash2, ChevronRight, Copy, RefreshCw,
-  Check, AlertTriangle, ExternalLink, Shield, Zap,
-  Target, TrendingUp, Award, MessageCircle,
+  User, CreditCard, Key, Star, BookOpen, Bell, HelpCircle,
+  Trash2, ChevronRight, Copy, RefreshCw, Check, AlertTriangle,
+  ExternalLink, Shield, Zap, Target, TrendingUp, Award,
+  MessageCircle, Camera, Lock, Briefcase, Phone,
+  Globe, AtSign, ArrowRight,
 } from 'lucide-react';
 
 const SECTIONS = [
-  { id: 'profile',       icon: User,         label: 'Perfil',             color: 'text-blue-500',   bg: 'bg-blue-50'   },
-  { id: 'billing',       icon: CreditCard,   label: 'Plan y facturación', color: 'text-green-600',  bg: 'bg-green-50'  },
-  { id: 'api',           icon: Key,          label: 'API Access',         color: 'text-purple-500', bg: 'bg-purple-50' },
-  { id: 'favorites',     icon: Star,         label: 'Leads favoritos',    color: 'text-amber-500',  bg: 'bg-amber-50'  },
-  { id: 'guide',         icon: BookOpen,     label: 'Guía de LeadFlow',   color: 'text-primary',    bg: 'bg-green-50'  },
-  { id: 'notifications', icon: Bell,         label: 'Notificaciones',     color: 'text-indigo-500', bg: 'bg-indigo-50' },
-  { id: 'help',          icon: HelpCircle,   label: 'Comunidad y ayuda',  color: 'text-cyan-500',   bg: 'bg-cyan-50'   },
-  { id: 'danger',        icon: Trash2,       label: 'Zona de peligro',    color: 'text-red-500',    bg: 'bg-red-50'    },
+  { id: 'profile',       icon: User,       label: 'Perfil',             color: 'text-blue-500',   bg: 'bg-blue-50'   },
+  { id: 'billing',       icon: CreditCard, label: 'Plan y facturacion', color: 'text-green-600',  bg: 'bg-green-50'  },
+  { id: 'api',           icon: Key,        label: 'API Access',         color: 'text-purple-500', bg: 'bg-purple-50' },
+  { id: 'favorites',     icon: Star,       label: 'Leads favoritos',    color: 'text-amber-500',  bg: 'bg-amber-50'  },
+  { id: 'guide',         icon: BookOpen,   label: 'Guia de LeadFlow',   color: 'text-primary',    bg: 'bg-green-50'  },
+  { id: 'notifications', icon: Bell,       label: 'Notificaciones',     color: 'text-indigo-500', bg: 'bg-indigo-50' },
+  { id: 'help',          icon: HelpCircle, label: 'Comunidad y ayuda',  color: 'text-cyan-500',   bg: 'bg-cyan-50'   },
+  { id: 'danger',        icon: Trash2,     label: 'Zona de peligro',    color: 'text-red-500',    bg: 'bg-red-50'    },
 ];
 
 const PLAN_LABELS: Record<string, string> = {
@@ -26,68 +28,127 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 const GUIDE_STEPS = [
-  { icon: Target,    title: 'Extrae leads en segundos',         desc: 'Ve a Buscar Leads, elige una industria y ciudad, y LeadFlow extrae negocios reales de Google Maps con teléfono, WhatsApp y sitio web.' },
-  { icon: Star,      title: 'Marca tus leads más potenciales',  desc: 'En Mis Leads puedes marcar como favorito cualquier lead. Así organizas los contactos más prometedores para trabajar los primero.' },
-  { icon: TrendingUp,title: 'Analiza tu rendimiento',           desc: 'El Dashboard muestra métricas reales: total de leads, cobertura de email y WhatsApp, tasa de extracción y evolución mensual.' },
-  { icon: Award,     title: 'Exporta y actúa',                  desc: 'Descarga tus leads en CSV o genera un Reporte PDF profesional para presentar a clientes.' },
-  { icon: Zap,       title: 'Optimiza tu cuota',                desc: 'Extrae por industrias específicas y ciudades concretas para maximizar la calidad sobre la cantidad.' },
+  { icon: Target,     title: 'Extrae leads en segundos',       desc: 'Ve a Buscar Leads, elige una industria y ciudad. LeadFlow extrae negocios reales de Google Maps con telefono, WhatsApp y sitio web en segundos.',  color: 'from-blue-500 to-blue-600'    },
+  { icon: Star,       title: 'Marca tus leads potenciales',    desc: 'En el Dashboard, toca la estrella de cualquier lead para guardarlo en Favoritos. Asi organizas los contactos mas prometedores para trabajar primero.', color: 'from-amber-500 to-amber-600'  },
+  { icon: TrendingUp, title: 'Analiza tu rendimiento',         desc: 'El Dashboard muestra metricas reales: leads totales, cobertura de email y WhatsApp, tasa de extraccion y evolucion mensual.',                         color: 'from-green-500 to-green-600'  },
+  { icon: Award,      title: 'Exporta y actua',                desc: 'Descarga tus leads en CSV para importar a cualquier CRM, o genera un Reporte PDF profesional para presentar a clientes.',                              color: 'from-purple-500 to-purple-600' },
+  { icon: Zap,        title: 'Optimiza tu cuota',              desc: 'Filtra por industrias especificas y ciudades concretas. La calidad siempre supera a la cantidad — leads enfocados convierten mejor.',                  color: 'from-rose-500 to-rose-600'    },
+];
+
+
+const SOCIAL_LINKS_CONFIG = [
+  { key: 'instagram', icon: Camera, placeholder: 'instagram.com/tu_usuario', color: 'text-pink-500'  },
+  { key: 'twitter',   icon: AtSign,    placeholder: 'x.com/tu_usuario',         color: 'text-sky-500'   },
+  { key: 'whatsapp',  icon: Phone,     placeholder: '+57 300 000 0000',          color: 'text-green-500' },
+  { key: 'website',   icon: Globe,     placeholder: 'tu-sitio-web.com',          color: 'text-primary'   },
 ];
 
 export default function SettingsPage() {
-  const [active, setActive] = useState('profile');
-  const [profile, setProfile] = useState<any>(null);
-  const [fullName, setFullName] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [apiCopied, setApiCopied] = useState(false);
-  const [favorites, setFavorites] = useState<any[]>([]);
-  const [loadingFavs, setLoadingFavs] = useState(false);
+  const [active, setActive]             = useState('profile');
+  const [profile, setProfile]           = useState<any>(null);
+  const [fullName, setFullName]         = useState('');
+  const [description, setDescription]   = useState('');
+  const [socialLinks, setSocialLinks]   = useState({ instagram: '', twitter: '', whatsapp: '', website: '' });
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile]     = useState<File | null>(null);
+  const [saving, setSaving]             = useState(false);
+  const [apiKey, setApiKey]             = useState('');
+  const [apiName, setApiName]           = useState('');
+  const [apiDesc, setApiDesc]           = useState('');
+  const [apiMeta, setApiMeta]           = useState<any>(null);
+  const [apiCopied, setApiCopied]       = useState(false);
+  const [creatingKey, setCreatingKey]   = useState(false);
+  const [favorites, setFavorites]       = useState<any[]>([]);
+  const [loadingFavs, setLoadingFavs]   = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
-
+  const avatarRef = useRef<HTMLInputElement>(null);
   const { user, getUserProfile } = useAuth();
 
   useEffect(() => {
     getUserProfile().then((p: any) => {
       setProfile(p);
       setFullName(p?.full_name ?? '');
-      if (p?.api_key) setApiKey(p.api_key);
+      setDescription(p?.description ?? '');
+      setSocialLinks(p?.social_links ?? { instagram: '', twitter: '', whatsapp: '', website: '' });
+      if (p?.avatar_url) setAvatarPreview(p.avatar_url);
+      if (p?.api_key) {
+        setApiKey(p.api_key);
+        setApiMeta({ name: p.api_key_name, desc: p.api_key_description, created: p.api_key_created_at });
+      }
     });
   }, []);
 
   useEffect(() => {
     if (active === 'favorites') {
       setLoadingFavs(true);
-      fetch('/api/leads?favorites=true')
+      fetch('/api/leads?favorite=true&limit=100')
         .then((r) => r.json())
         .then((data) => setFavorites(data.leads ?? []))
         .finally(() => setLoadingFavs(false));
     }
   }, [active]);
 
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      await fetch('/api/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_name: fullName }),
-      });
-      toast.success('Perfil guardado');
-    } catch {
-      toast.error('Error al guardar');
+      const supabase = createClient();
+      let avatarUrl = profile?.avatar_url ?? '';
+      if (avatarFile) {
+        const ext = avatarFile.name.split('.').pop();
+        const path = `${user!.id}/avatar.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(path, avatarFile, { upsert: true });
+        if (uploadError) throw uploadError;
+        avatarUrl = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+      }
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({
+          full_name: fullName,
+          description,
+          social_links: socialLinks,
+          avatar_url: avatarUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user!.id);
+      if (error) throw error;
+      setProfile((p: any) => ({ ...p, full_name: fullName, description, social_links: socialLinks, avatar_url: avatarUrl }));
+      toast.success('Perfil guardado correctamente');
+    } catch (err: any) {
+      toast.error('Error: ' + (err.message ?? 'intenta de nuevo'));
     } finally {
       setSaving(false);
     }
   };
 
-  const handleGenerateApiKey = async () => {
+  const handleCreateApiKey = async () => {
+    if (!apiName.trim()) { toast.error('El nombre es obligatorio'); return; }
+    setCreatingKey(true);
     try {
-      const r = await fetch('/api/profile/api-key', { method: 'POST' });
-      const data = await r.json();
-      setApiKey(data.api_key);
-      toast.success('API Key generada');
-    } catch {
-      toast.error('Error al generar');
+      const supabase = createClient();
+      const bytes = crypto.getRandomValues(new Uint8Array(24));
+      const key = 'lf_' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+      const now = new Date().toISOString();
+      const { error } = await supabase
+        .from('user_profiles')
+        .update({ api_key: key, api_key_name: apiName.trim(), api_key_description: apiDesc.trim(), api_key_created_at: now })
+        .eq('id', user!.id);
+      if (error) throw error;
+      setApiKey(key);
+      setApiMeta({ name: apiName.trim(), desc: apiDesc.trim(), created: now });
+      toast.success('API Key creada exitosamente');
+    } catch (err: any) {
+      toast.error('Error: ' + (err.message ?? ''));
+    } finally {
+      setCreatingKey(false);
     }
   };
 
@@ -108,30 +169,67 @@ export default function SettingsPage() {
     }
   };
 
-  const plan = profile?.plan ?? 'free';
-  const quotaUsed = profile?.quota_used ?? 0;
-  const quotaTotal = profile?.quota_total ?? 100;
-  const isPro = plan === 'pro' || plan === 'enterprise';
+  const plan        = profile?.plan ?? 'free';
+  const quotaUsed   = profile?.quota_used ?? 0;
+  const quotaTotal  = profile?.quota_total ?? 100;
+  const isPro       = plan === 'pro' || plan === 'enterprise';
+  const isEnterprise = plan === 'enterprise';
 
   const renderContent = () => {
     switch (active) {
 
+      /* ─────────────── PERFIL ─────────────── */
       case 'profile':
         return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[17px] font-bold text-foreground mb-1">Tu perfil</h2>
-              <p className="text-[13px] text-muted-foreground">Administra tu informacion personal</p>
+          <div className="space-y-6 max-w-lg">
+            {/* Banner + Avatar */}
+            <div className="relative pb-12">
+              <div className="h-28 rounded-2xl bg-gradient-to-br from-primary/30 via-primary/15 to-primary/5 border border-border" />
+              <div className="absolute bottom-0 left-5 flex items-end gap-4">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-full border-4 border-background bg-muted overflow-hidden shadow-lg">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-primary/10">
+                        <User size={30} className="text-primary/40" />
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => avatarRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors"
+                  >
+                    <Camera size={13} />
+                  </button>
+                  <input ref={avatarRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                </div>
+                <div className="pb-1">
+                  <p className="text-[15px] font-bold text-foreground leading-tight">{fullName || 'Tu nombre'}</p>
+                  <p className="text-[12px] text-muted-foreground">{user?.email}</p>
+                </div>
+              </div>
             </div>
+            {/* Fields */}
             <div className="space-y-4">
               <div>
-                <label className="text-[12px] font-semibold text-foreground mb-1.5 block">Nombre completo</label>
+                <label className="text-[12px] font-semibold text-foreground mb-1.5 block">Nombre completo *</label>
                 <input
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full h-10 px-3 rounded-xl border border-border bg-background text-[13px] text-foreground outline-none focus:ring-2 focus:ring-primary/30"
-                  placeholder="Tu nombre"
+                  placeholder="Tu nombre completo"
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-background text-[13px] outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+              <div>
+                <label className="text-[12px] font-semibold text-foreground mb-1.5 block">Descripcion</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Una breve descripcion sobre ti o tu negocio..."
+                  rows={3}
+                  className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-[13px] outline-none focus:ring-2 focus:ring-primary/30 resize-none"
                 />
               </div>
               <div>
@@ -140,19 +238,35 @@ export default function SettingsPage() {
                   type="text"
                   value={user?.email ?? ''}
                   disabled
-                  className="w-full h-10 px-3 rounded-xl border border-border bg-muted text-[13px] text-muted-foreground outline-none"
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-muted text-[13px] text-muted-foreground"
                 />
               </div>
+              {/* Social links */}
               <div>
-                <label className="text-[12px] font-semibold text-foreground mb-1.5 block">Plan actual</label>
-                <div className="h-10 px-3 rounded-xl border border-border bg-muted flex items-center">
-                  <span className="text-[13px] text-foreground font-medium">{PLAN_LABELS[plan]}</span>
+                <label className="text-[12px] font-semibold text-foreground mb-2 block">
+                  Redes sociales <span className="text-muted-foreground font-normal">(opcional)</span>
+                </label>
+                <div className="space-y-2">
+                  {SOCIAL_LINKS_CONFIG.map(({ key, icon: Icon, placeholder, color }) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <div className="w-9 h-9 rounded-lg border border-border bg-muted flex items-center justify-center shrink-0">
+                        <Icon size={15} className={color} />
+                      </div>
+                      <input
+                        type="text"
+                        value={(socialLinks as Record<string, string>)[key]}
+                        onChange={(e) => setSocialLinks((prev) => ({ ...prev, [key]: e.target.value }))}
+                        placeholder={placeholder}
+                        className="flex-1 h-9 px-3 rounded-xl border border-border bg-background text-[13px] outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
               <button
                 onClick={handleSaveProfile}
                 disabled={saving}
-                className="h-10 px-5 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
               >
                 {saving ? 'Guardando...' : 'Guardar cambios'}
               </button>
@@ -160,6 +274,7 @@ export default function SettingsPage() {
           </div>
         );
 
+      /* ─────────────── BILLING ─────────────── */
       case 'billing':
         return (
           <div className="space-y-6">
@@ -194,7 +309,7 @@ export default function SettingsPage() {
               >
                 <div>
                   <p className="text-[14px] font-semibold text-foreground">Actualizar plan</p>
-                  <p className="text-[12px] text-muted-foreground">Obtener mas leads y funciones premium</p>
+                  <p className="text-[12px] text-muted-foreground">Mas leads y funciones premium</p>
                 </div>
                 <ChevronRight size={16} className="text-primary" />
               </a>
@@ -202,47 +317,131 @@ export default function SettingsPage() {
           </div>
         );
 
+      /* ─────────────── API ─────────────── */
       case 'api':
         return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[17px] font-bold text-foreground mb-1">API Access</h2>
-              <p className="text-[13px] text-muted-foreground">Tu clave para acceder a la API de LeadFlow</p>
-            </div>
-            <div className="space-y-3">
-              <label className="text-[12px] font-semibold text-foreground block">Tu API Key</label>
-              <div className="flex items-center gap-2">
-                <div className="flex-1 h-10 px-3 rounded-xl border border-border bg-muted flex items-center overflow-hidden">
-                  <span className="text-[12px] text-muted-foreground font-mono truncate">
-                    {apiKey || 'No generada aun'}
-                  </span>
+          <div className="space-y-6 max-w-lg">
+            {!isEnterprise ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center border border-purple-100">
+                  <Lock size={28} className="text-purple-400" />
                 </div>
-                {apiKey && (
-                  <button
-                    onClick={handleCopyApiKey}
-                    className="flex items-center gap-2 h-9 px-4 border border-border rounded-lg text-[13px] hover:bg-muted transition-colors"
-                  >
-                    {apiCopied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                  </button>
-                )}
+                <div>
+                  <p className="text-[16px] font-bold text-foreground mb-1">Solo plan Enterprise</p>
+                  <p className="text-[13px] text-muted-foreground max-w-xs leading-relaxed">
+                    La API de LeadFlow esta disponible exclusivamente para el plan Enterprise (10.000 leads/mes).
+                  </p>
+                </div>
+                <a
+                  href="/pricing"
+                  className="flex items-center gap-2 h-10 px-6 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Ver planes <ChevronRight size={15} />
+                </a>
               </div>
-              <button
-                onClick={handleGenerateApiKey}
-                className="flex items-center gap-2 h-9 px-4 border border-border rounded-lg text-[13px] hover:bg-muted transition-colors"
-              >
-                <RefreshCw size={14} />
-                {apiKey ? 'Regenerar API Key' : 'Generar API Key'}
-              </button>
-            </div>
+            ) : (
+              <React.Fragment>
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-7 h-7 rounded-lg bg-purple-50 flex items-center justify-center">
+                      <Key size={14} className="text-purple-500" />
+                    </div>
+                    <h2 className="text-[17px] font-bold text-foreground">API Key Access</h2>
+                  </div>
+                  <p className="text-[13px] text-muted-foreground">
+                    Agrega un nombre y una descripcion para acceder a tu clave API de LeadFlow.
+                  </p>
+                </div>
+                {!apiKey ? (
+                  <div className="p-5 rounded-2xl border border-border bg-muted/20 space-y-4">
+                    <div>
+                      <label className="text-[12px] font-semibold text-foreground mb-1.5 block">Nombre de la clave *</label>
+                      <input
+                        type="text"
+                        value={apiName}
+                        onChange={(e) => setApiName(e.target.value)}
+                        placeholder="Ej: Produccion principal"
+                        className="w-full h-10 px-3 rounded-xl border border-border bg-background text-[13px] outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-semibold text-foreground mb-1.5 block">
+                        Descripcion <span className="text-muted-foreground font-normal">(opcional)</span>
+                      </label>
+                      <textarea
+                        value={apiDesc}
+                        onChange={(e) => setApiDesc(e.target.value)}
+                        placeholder="Para que usaras esta API key..."
+                        rows={2}
+                        className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-[13px] outline-none focus:ring-2 focus:ring-primary/30 resize-none"
+                      />
+                    </div>
+                    <button
+                      onClick={handleCreateApiKey}
+                      disabled={creatingKey || !apiName.trim()}
+                      className="w-full h-10 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {creatingKey ? 'Generando...' : 'Crear API Key'}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-2xl border border-border bg-muted/20 space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-[14px] font-bold text-foreground">{apiMeta?.name ?? 'Mi API Key'}</p>
+                    {apiMeta?.desc && <p className="text-[12px] text-muted-foreground mt-0.5">{apiMeta.desc}</p>}
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-semibold shrink-0">Activa</span>
+                </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <p className="text-[11px] font-semibold text-foreground mb-0.5">Cuenta</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-semibold text-foreground mb-0.5">Creada</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {apiMeta?.created ? new Date(apiMeta.created).toLocaleDateString('es-CO') : 'Hoy'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-semibold text-foreground mb-1.5 block">Tu API Key</label>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-10 px-3 rounded-xl border border-border bg-muted flex items-center overflow-hidden">
+                          <span className="text-[11px] text-muted-foreground font-mono truncate">{apiKey}</span>
+                        </div>
+                        <button
+                          onClick={handleCopyApiKey}
+                          className="flex items-center gap-1.5 h-10 px-4 rounded-xl border border-border bg-background text-[13px] hover:bg-muted transition-colors shrink-0"
+                        >
+                          {apiCopied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          <span className="text-[12px]">{apiCopied ? 'Copiada' : 'Copiar'}</span>
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => { setApiKey(''); setApiName(apiMeta?.name ?? ''); setApiDesc(apiMeta?.desc ?? ''); setApiMeta(null); }}
+                      className="flex items-center gap-2 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <RefreshCw size={13} /> Regenerar clave
+                    </button>
+                  </div>
+                )}
+              </React.Fragment>
+            )}
           </div>
         );
 
+      /* ─────────────── FAVORITOS ─────────────── */
       case 'favorites':
         return (
           <div className="space-y-6">
             <div>
               <h2 className="text-[17px] font-bold text-foreground mb-1">Leads favoritos</h2>
-              <p className="text-[13px] text-muted-foreground">Tus leads marcados como prioritarios</p>
+              <p className="text-[13px] text-muted-foreground">Tus leads marcados con estrella en el Dashboard</p>
             </div>
             {selectedLead && (
               <div
@@ -270,19 +469,18 @@ export default function SettingsPage() {
                         {selectedLead.industry ?? 'Sin industria'}
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 pt-2">
-                      {selectedLead.phone && (
-                        <div>
-                          <p className="text-[11px] text-muted-foreground mb-0.5">Telefono</p>
-                          <p className="text-[13px] text-foreground font-medium">{selectedLead.phone}</p>
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      {[
+                        { label: 'Telefono', value: selectedLead.phone    },
+                        { label: 'Ciudad',   value: selectedLead.city     },
+                        { label: 'Estado',   value: selectedLead.state    },
+                        { label: 'WhatsApp', value: selectedLead.whatsapp },
+                      ].filter((f) => f.value).map((field, i) => (
+                        <div key={i}>
+                          <p className="text-[11px] text-muted-foreground mb-0.5">{field.label}</p>
+                          <p className="text-[13px] text-foreground font-medium">{field.value}</p>
                         </div>
-                      )}
-                      {selectedLead.city && (
-                        <div>
-                          <p className="text-[11px] text-muted-foreground mb-0.5">Ciudad</p>
-                          <p className="text-[13px] text-foreground font-medium">{selectedLead.city}</p>
-                        </div>
-                      )}
+                      ))}
                       {selectedLead.email && (
                         <div className="col-span-2">
                           <p className="text-[11px] text-muted-foreground mb-0.5">Email</p>
@@ -292,38 +490,38 @@ export default function SettingsPage() {
                       {selectedLead.website && (
                         <div className="col-span-2">
                           <p className="text-[11px] text-muted-foreground mb-0.5">Sitio web</p>
-                          <a
-                            href={selectedLead.website}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-[13px] text-primary truncate flex items-center gap-1"
-                          >
+                          <a href={selectedLead.website} target="_blank" rel="noreferrer"
+                            className="text-[13px] text-primary flex items-center gap-1 truncate">
                             Ver sitio <ExternalLink size={11} />
                           </a>
                         </div>
                       )}
+                      {selectedLead.address && (
+                        <div className="col-span-2">
+                          <p className="text-[11px] text-muted-foreground mb-0.5">Direccion</p>
+                          <p className="text-[13px] text-foreground">{selectedLead.address}</p>
+                        </div>
+                      )}
                     </div>
-                    {selectedLead.address && (
-                      <div className="pt-1">
-                        <p className="text-[11px] text-muted-foreground mb-0.5">Direccion</p>
-                        <p className="text-[13px] text-foreground">{selectedLead.address}</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
             )}
             {loadingFavs ? (
               <div className="space-y-2">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />
-                ))}
+                {[1,2,3].map((i) => <div key={i} className="h-16 rounded-xl bg-muted animate-pulse" />)}
               </div>
             ) : favorites.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Star size={32} className="text-muted-foreground mb-3" />
-                <p className="text-[14px] font-semibold text-foreground">Sin favoritos aun</p>
-                <p className="text-[12px] text-muted-foreground mt-1">Marca leads con estrella en el Dashboard</p>
+              <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
+                <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center border border-amber-100">
+                  <Star size={26} className="text-amber-400" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-semibold text-foreground">Sin favoritos aun</p>
+                  <p className="text-[12px] text-muted-foreground mt-1">
+                    Toca la estrella en cualquier lead del Dashboard para guardarlo aqui
+                  </p>
+                </div>
               </div>
             ) : (
               <div className="space-y-2">
@@ -333,17 +531,17 @@ export default function SettingsPage() {
                     className="flex items-center gap-3 p-3 border border-border rounded-xl hover:bg-muted/30 transition-colors cursor-pointer"
                     onClick={() => setSelectedLead(lead)}
                   >
-                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-                      <Star size={14} className="text-amber-500" />
+                    <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                      <Star size={14} className="text-amber-500 fill-amber-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-foreground truncate">{lead.name}</p>
-                      <p className="text-[11px] text-muted-foreground">{lead.industry} - {lead.city}</p>
+                      <p className="text-[11px] text-muted-foreground">{lead.industry ?? 'Sin industria'} · {lead.city ?? '—'}</p>
                     </div>
-                    <p className="text-[12px] text-muted-foreground font-mono shrink-0">{lead.phone ?? '-'}</p>
+                    <p className="text-[12px] text-muted-foreground font-mono shrink-0">{lead.phone ?? '—'}</p>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleUnfavorite(lead.id); }}
-                      className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-muted-foreground transition-colors"
+                      className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-muted-foreground transition-colors shrink-0"
                     >
                       <Trash2 size={13} />
                     </button>
@@ -354,29 +552,47 @@ export default function SettingsPage() {
           </div>
         );
 
+      /* ─────────────── GUIA ─────────────── */
       case 'guide':
         return (
           <div className="space-y-6">
             <div>
               <h2 className="text-[17px] font-bold text-foreground mb-1">Guia de LeadFlow</h2>
-              <p className="text-[13px] text-muted-foreground">Aprende a sacar el maximo provecho</p>
+              <p className="text-[13px] text-muted-foreground">Domina la plataforma en 5 pasos</p>
             </div>
-            <div className="space-y-3">
-              {GUIDE_STEPS.map((step, i) => (
-                <div key={i} className="flex gap-3 p-4 rounded-2xl border border-border bg-muted/20">
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <step.icon size={16} className="text-primary" />
+            <div className="relative">
+              <div className="absolute left-[21px] top-11 bottom-11 w-0.5 bg-border z-0" />
+              <div className="relative z-10 space-y-4">
+                {GUIDE_STEPS.map((step, i) => (
+                  <div key={i} className="flex gap-4 items-start">
+                    <div className={`w-11 h-11 rounded-full bg-gradient-to-br ${step.color} flex items-center justify-center text-white font-bold text-[15px] shrink-0 shadow-md`}>
+                      {i + 1}
+                    </div>
+                    <div className="flex-1 p-4 rounded-2xl border border-border bg-muted/10 hover:bg-muted/25 transition-colors">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-background border border-border flex items-center justify-center shrink-0 shadow-sm">
+                          <step.icon size={15} className="text-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-[13px] font-bold text-foreground mb-1">{step.title}</p>
+                          <p className="text-[12px] text-muted-foreground leading-relaxed">{step.desc}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[13px] font-bold text-foreground mb-0.5">{step.title}</p>
-                    <p className="text-[12px] text-muted-foreground leading-relaxed">{step.desc}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+            <a
+              href="/lead-search-extraction"
+              className="flex items-center justify-center gap-2 h-11 rounded-xl bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
+            >
+              Comenzar a extraer leads <ArrowRight size={15} />
+            </a>
           </div>
         );
 
+      /* ─────────────── NOTIFICACIONES ─────────────── */
       case 'notifications':
         return (
           <div className="space-y-6">
@@ -386,9 +602,9 @@ export default function SettingsPage() {
             </div>
             <div className="space-y-3">
               {[
-                { label: 'Extraccion completada',  desc: 'Cuando termina un trabajo de busqueda' },
-                { label: 'Cuota casi agotada',     desc: 'Cuando usas el 80% de tu cuota mensual' },
-                { label: 'Novedades de LeadFlow',  desc: 'Nuevas funciones y mejoras' },
+                { label: 'Extraccion completada', desc: 'Cuando termina un trabajo de busqueda'   },
+                { label: 'Cuota casi agotada',    desc: 'Cuando usas el 80% de tu cuota mensual' },
+                { label: 'Novedades de LeadFlow', desc: 'Nuevas funciones y mejoras de la app'    },
               ].map((item, i) => (
                 <div key={i} className="flex items-center justify-between p-4 rounded-2xl border border-border">
                   <div>
@@ -404,26 +620,21 @@ export default function SettingsPage() {
           </div>
         );
 
+      /* ─────────────── AYUDA ─────────────── */
       case 'help':
         return (
           <div className="space-y-6">
             <div>
               <h2 className="text-[17px] font-bold text-foreground mb-1">Comunidad y ayuda</h2>
-              <p className="text-[13px] text-muted-foreground">Recursos y soporte</p>
+              <p className="text-[13px] text-muted-foreground">Recursos, soporte y privacidad</p>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[
-                { icon: MessageCircle, label: 'Comunidad WhatsApp', desc: 'Unete a nuestra comunidad', href: 'https://chat.whatsapp.com/Lrw99M0Qh6h3cje9zxh28N', bg: 'bg-green-50', color: 'text-green-600' },
-                { icon: BookOpen,      label: 'Documentacion',      desc: 'Guias y tutoriales',   href: '/guide',                                          bg: 'bg-blue-50',  color: 'text-blue-500'  },
-                { icon: Shield,        label: 'Privacidad',         desc: 'Politica de privacidad',    href: '/privacy',                                        bg: 'bg-gray-50',  color: 'text-gray-500'  },
+                { icon: MessageCircle, label: 'Comunidad WhatsApp', desc: 'Tips, estrategias y soporte directo', href: 'https://chat.whatsapp.com/Lrw99M0Qh6h3cje9zxh28N', bg: 'bg-green-50', color: 'text-green-600' },
+                { icon: BookOpen,      label: 'Documentacion',      desc: 'Guias paso a paso',                  href: '/guide',                                          bg: 'bg-blue-50',  color: 'text-blue-500'  },
               ].map((item, i) => (
-                <a
-                  key={i}
-                  href={item.href}
-                  target={item.href.startsWith('http') ? '_blank' : undefined}
-                  rel="noreferrer"
-                  className="flex items-center gap-3 p-4 rounded-2xl border border-border hover:bg-muted/30 transition-colors"
-                >
+                <a key={i} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel="noreferrer"
+                  className="flex items-center gap-3 p-4 rounded-2xl border border-border hover:bg-muted/30 transition-colors">
                   <div className={`w-9 h-9 rounded-xl ${item.bg} flex items-center justify-center shrink-0`}>
                     <item.icon size={16} className={item.color} />
                   </div>
@@ -435,9 +646,64 @@ export default function SettingsPage() {
                 </a>
               ))}
             </div>
+            {/* Politica de privacidad */}
+            <div className="p-5 rounded-2xl border border-border space-y-4">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-muted flex items-center justify-center">
+                  <Shield size={15} className="text-foreground" />
+                </div>
+                <div>
+                  <p className="text-[14px] font-bold text-foreground">Politica de privacidad</p>
+                  <p className="text-[11px] text-muted-foreground">Actualizacion: enero 2025</p>
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-green-50 border border-green-100">
+                <p className="text-[12px] font-bold text-green-800 mb-1">Lo mas importante primero</p>
+                <p className="text-[12px] text-green-700 leading-relaxed">
+                  LeadFlow no vende, no comparte ni comercializa tus datos personales. Jamas. Existimos para ayudarte a crecer tu negocio, no para beneficiarnos de tu informacion.
+                </p>
+              </div>
+              <div className="space-y-3 text-[12px] text-muted-foreground leading-relaxed">
+                {[
+                  {
+                    title: 'Que informacion recopilamos',
+                    body: 'Solo lo necesario: tu email para el login, tu nombre si decides agregarlo, y los leads que extraes (que son completamente tuyos). No recopilamos datos de navegacion ni comportamiento mas alla de lo estrictamente necesario para que la app funcione correctamente.',
+                  },
+                  {
+                    title: 'Como usamos tu informacion',
+                    body: 'Tu email se usa exclusivamente para autenticarte y enviarte notificaciones de tu cuenta. Tus leads extraidos se almacenan de forma privada y solo tu tienes acceso a ellos. Nadie en nuestro equipo accede a tu informacion sin una razon tecnica justificada.',
+                  },
+                  {
+                    title: 'Tus leads son tuyos, siempre',
+                    body: 'Todo lo que extraes con LeadFlow te pertenece al 100%. Puedes exportarlo, eliminarlo o descargarlo cuando quieras. Si cancelas tu cuenta, eliminamos todos tus datos de nuestros servidores en un plazo maximo de 30 dias.',
+                  },
+                  {
+                    title: 'Sin cookies de rastreo',
+                    body: 'Usamos unicamente cookies tecnicas minimas para mantener tu sesion activa. No usamos cookies publicitarias, no te rastreamos entre sitios y no compartimos ningun dato con plataformas de publicidad.',
+                  },
+                  {
+                    title: 'Seguridad real',
+                    body: 'Tu informacion se almacena en Supabase con cifrado en reposo y en transito. Usamos autenticacion segura via email y Google OAuth. Las contrasenas nunca se almacenan en texto plano.',
+                  },
+                  {
+                    title: 'Tus derechos',
+                    body: 'Tienes derecho a acceder, modificar o eliminar tu informacion en cualquier momento desde esta seccion de Configuracion. Para solicitar la eliminacion completa de tu cuenta y todos tus datos, escríbenos directamente en nuestra comunidad de WhatsApp.',
+                  },
+                ].map((s, i) => (
+                  <div key={i} className="space-y-0.5">
+                    <p className="font-semibold text-foreground">{s.title}</p>
+                    <p>{s.body}</p>
+                  </div>
+                ))}
+                <p className="pt-1 text-[11px] border-t border-border">
+                  Preguntas sobre privacidad: escríbenos en la comunidad de WhatsApp y te respondemos personalmente.
+                </p>
+              </div>
+            </div>
           </div>
         );
 
+      /* ─────────────── PELIGRO ─────────────── */
       case 'danger':
         return (
           <div className="space-y-6">
@@ -456,7 +722,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <button
-                onClick={() => toast.error('Contacta a soporte para eliminar tu cuenta')}
+                onClick={() => toast.error('Contacta a soporte en WhatsApp para eliminar tu cuenta')}
                 className="w-full h-10 rounded-xl border border-red-300 text-red-600 text-[13px] font-semibold hover:bg-red-100 transition-colors"
               >
                 Solicitar eliminacion de cuenta
