@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
 
   // Rutas públicas — no requieren autenticación
   const publicRoutes = ['/sign-up-login', '/auth/callback', '/pricing'];
-  const isPublic = publicRoutes.some((r) => pathname.startsWith(r));
+  const isPublic = pathname === '/' || publicRoutes.some((r) => pathname.startsWith(r));
 
   if (!user && !isPublic) {
     return NextResponse.redirect(new URL('/sign-up-login', request.url));
