@@ -1,7 +1,8 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Search, Download, Trash2, ChevronLeft, ChevronRight, Loader2, FileText, Star, Copy } from 'lucide-react';
+import AiAnalysisModal from './AiAnalysisModal';
+import { Search, Download, Trash2, ChevronLeft, ChevronRight, Loader2, FileText, Star, Copy, Zap } from 'lucide-react';
 
 interface Lead {
   id: string;
@@ -25,6 +26,7 @@ export default function LeadsTable() {
   const [total, setTotal] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [copyModal, setCopyModal] = useState<Lead | null>(null);
+  const [aiLead, setAiLead] = useState<Lead | null>(null);
   const perPage = 10;
 
   const fetchLeads = useCallback(async () => {
@@ -110,6 +112,8 @@ export default function LeadsTable() {
 
   return (
     <div className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+
+      {aiLead && <AiAnalysisModal lead={aiLead} onClose={() => setAiLead(null)} />}
 
       {/* Copy modal */}
       {copyModal && (
