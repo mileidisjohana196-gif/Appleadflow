@@ -265,16 +265,23 @@ export default function LeadsTable() {
                       : <span className="text-muted-foreground text-[11px]">—</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => setCopyModal(lead)}
-                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
-                        <Copy size={13} />
-                      </button>
-                      <button onClick={() => handleDelete(lead.id)}
-                        className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-muted-foreground transition-colors">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => setAiLead(lead)}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-[11px] font-bold transition-colors border border-primary/20"
+                    >
+                      <Zap size={11} />
+                      Analizar IA
+                    </button>
+                    <button onClick={() => setCopyModal(lead)}
+                      className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground transition-colors">
+                      <Copy size={13} />
+                    </button>
+                    <button onClick={() => handleDelete(lead.id)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 hover:text-red-500 text-muted-foreground transition-colors">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                   </td>
                 </tr>
               ))}
